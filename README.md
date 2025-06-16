@@ -5,9 +5,8 @@
 [![License](https://img.shields.io/github/license/zhihulite/Hydrogen)](LICENSE)
 [![Gitee 仓库](https://img.shields.io/badge/Gitee-仓库-C71D23?logo=gitee)](https://gitee.com/huajicloud/Hydrogen)
 [![Github 仓库](https://img.shields.io/badge/Github-仓库-0969DA?logo=github)](https://github.com/zhihulite/Hydrogen)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/zhihulite/Hydrogen/android.yml)
-![Static Badge](https://img.shields.io/badge/Get_it_on-Github.io-blue?link=https%3A%2F%2Fhuajiqaq.github.io%2Fmyhydrogen%2Fupdate.html)
-![Static Badge](https://img.shields.io/badge/Chat_with_us_on-Telegram-blue?style=social&link=https%3A%2F%2Ft.me%2FHydrogen_fzhihu)
+[![Static Badge](https://img.shields.io/badge/Get_it_on-Github.io-blue?link=https%3A%2F%2Fhuajiqaq.github.io%2Fmyhydrogen%2Fupdate.html)](https://huajiqaq.github.io/myhydrogen/update.html)
+[![Static Badge](https://img.shields.io/badge/Chat_with_us_on-Telegram-blue?style=social&link=https%3A%2F%2Ft.me%2FHydrogen_fzhihu&logo=telegram)](https://t.me/Hydrogen_fzhihu)
 
 ## 项目介绍
 
@@ -26,6 +25,11 @@ Hydrogen 是一个基于 Androlua+ 开发的项目，为了避免重打包可以
 ## 下载安装
 
 最新版 App 请访问[发布页面](https://huajiqaq.github.io/myhydrogen)获取。历史版本可通过[此链接](https://workdrive.zoho.com.cn/folder/8ix3h3e8828db660e4e63acd5dd9e70bf591a)下载。
+
+你可以通过GitHub Action 获取最新的APK以解决部分问题
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/zhihulite/Hydrogen/android.yml)
+
+（你可能需要登录账号以下载）
 
 - **hydrogen-master.zip**：这是 Hydrogen 最终版 final 7 的源代码。请注意预览或打包时可能会报错。如需解决这些问题，请下载本项目中的 **要插入的 dex** 文件，将其添加至打包的 APK 中。
 - **hydrogen 目录**：包含 Hydrogen 后续维护版本的源码。此版本无需下载 **要插入的 dex** 文件。
