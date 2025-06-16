@@ -5,6 +5,9 @@
 [![License](https://img.shields.io/github/license/zhihulite/Hydrogen)](LICENSE)
 [![Gitee 仓库](https://img.shields.io/badge/Gitee-仓库-C71D23?logo=gitee)](https://gitee.com/huajicloud/Hydrogen)
 [![Github 仓库](https://img.shields.io/badge/Github-仓库-0969DA?logo=github)](https://github.com/zhihulite/Hydrogen)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/zhihulite/Hydrogen/android.yml)
+![Static Badge](https://img.shields.io/badge/Get_it_on-Github.io-blue?link=https%3A%2F%2Fhuajiqaq.github.io%2Fmyhydrogen%2Fupdate.html)
+![Static Badge](https://img.shields.io/badge/Chat_with_us_on-Telegram-blue?style=social&link=https%3A%2F%2Ft.me%2FHydrogen_fzhihu)
 
 ## 项目介绍
 
