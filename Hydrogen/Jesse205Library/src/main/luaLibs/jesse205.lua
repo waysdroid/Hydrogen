@@ -116,6 +116,26 @@ R = luajava.bindClass(context.getPackageName() .. ".R")
 
 if activity then
   window = activity.getWindow()
+  pcall(function()
+    local nightModePref = activity.getSharedData("Setting_Night_Mode")
+    local autoNightModePref = activity.getSharedData("Setting_Auto_Night_Mode")
+    local config = activity.getResources().getConfiguration()
+    import "android.content.res.Configuration"
+    local currentUiModeInfo = config.uiMode & Configuration.UI_MODE_NIGHT_MASK
+    local targetUiMode = Configuration.UI_MODE_NIGHT_NO
+
+    if tostring(nightModePref) == "true" then
+        targetUiMode = Configuration.UI_MODE_NIGHT_YES
+    elseif tostring(autoNightModePref) == "true" then
+        targetUiMode = currentUiModeInfo
+    end
+
+    if currentUiModeInfo ~= targetUiMode then
+        config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | targetUiMode
+        activity.getResources().updateConfiguration(config, activity.getResources().getDisplayMetrics())
+    end
+  end)
+
   --动态配色
   import "com.google.android.material.color.DynamicColors"
   DynamicColors.applyToActivitiesIfAvailable(activity.getApplication())
