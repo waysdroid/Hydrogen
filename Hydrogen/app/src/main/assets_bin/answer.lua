@@ -24,6 +24,8 @@ local last_toast_time = 0
 
 -- 初始化参数
 问题id, 回答id, pre_data = ...
+pre_data=processTable(pre_data or {nil})
+
 
 -- 核心优化：在布局渲染前立即设置窗口背景色，防止 Activity 启动瞬间白屏
 activity.getWindow().setBackgroundDrawable(ColorDrawable(backgroundc_int))
@@ -55,6 +57,8 @@ if type(pre_data) == "table" then
   -- 更新底栏计数
   vote_count.Text = tostring(pre_data.voteup_count or vote_count.Text)
   comment_count.Text = tostring(pre_data.comment_count or comment_count.Text)
+  expand_title.text = tostring((pre_data.question or {}).title or "")
+  _title.text = tostring((pre_data.question or {}).title or "")
 end
 
 edgeToedge(nil,nil,function()
@@ -68,7 +72,6 @@ end)
 
 -- 解决标题闪烁：确保 toolbar 初始背景色和透明度正确
 root_card.setBackgroundColor(backgroundc_int)
-all_root.setAlpha(0) 
 
 IArgbEvaluator=ArgbEvaluator.newInstance()
 波纹({fh,_more,mark,comment,thank,voteup},"圆主题")
@@ -110,15 +113,12 @@ local function set_question_info(tab)
   -- 强制应用一次背景色
   root_card.setBackgroundColor(backgroundc_int)
   title_bar_expand.setBackgroundColor(backgroundc_int)
-  -- 强制重置标题状态为展开
-  all_root.setAlpha(0)
-  all_root_expand.setAlpha(1)
-  
+
   if answer_count == 1 and 回答容器 then
     回答容器.isleft = true
     回答容器.isright = true
   end
-    
+
   local function openQuestion()
     local target_id = 问题id or 回答容器.id内容:match("(.+)分割")
     if target_id == nil or target_id == "null" then
@@ -126,21 +126,23 @@ local function set_question_info(tab)
     end
     newActivity("question", {target_id, _title.Text})
   end
-    
+
   all_root.onClick = openQuestion
   all_root_expand.onClick = openQuestion
   all_answer_expand.onClick = openQuestion
+
 end
 
 -- 优化：如果 pre_data 中已经包含问题信息，则直接设置，避免多余的 API 请求
-if type(pre_data) == "table" and pre_data.question then
+-- 实际上新API直接返回为0
+--[[if type(pre_data) == "table" and pre_data.question then
   set_question_info(pre_data.question)
-else
-  -- 优化：直接获取信息，避免多余的 1ms 延迟
-  answer:getinfo(回答id, function(tab)
-    set_question_info(tab)
-  end)
-end
+else]]
+-- 优化：直接获取信息，避免多余的 1ms 延迟
+answer:getinfo(回答id, function(tab)
+  set_question_info(tab)
+end)
+
 
 local dtl_translation = 0
 local currentWebView
@@ -186,18 +188,18 @@ end
 
 local function 统一滑动跟随(view,x,y,lx,ly)
   if view ~= currentWebView then return end
-  
+
   -- 1. 缓存 Header 高度，避免重复测量
   if cached_header_height == 0 then
     cached_header_height = all_root_expand.getHeight()
     if cached_header_height == 0 then cached_header_height = dp2px(100) end
   end
-  
+
   local translation = -y -- 直接使用 y 坐标避免 getScrollY() 调用
-  
+
   -- 3. 执行偏移
   appbar.setTranslationY(translation)
-  
+
   -- 优化：使用局部变量缓存当前页面的 ids，避免在滚动中执行复杂的查找函数
   if not currentMViewIds then
     local mview = getCurrentMView()
@@ -212,7 +214,7 @@ local function 统一滑动跟随(view,x,y,lx,ly)
   local progress = math.min(1, math.abs(translation) / cached_header_height)
   all_root.setAlpha(progress)
   all_root_expand.setAlpha(1 - progress)
-  
+
   -- 5. 底栏 (dtl) 逻辑
   local dy = y - ly
   if math.abs(dy) > 300 then return end
@@ -274,7 +276,7 @@ appbar.getViewTreeObserver().addOnGlobalLayoutListener(ViewTreeObserver.OnGlobal
     if height_px > 0 and height_px ~= last_appbar_height then
       last_appbar_height = height_px
       cached_header_height = 0 -- 重置缓存
-      
+
       -- 更新所有已加载页面的 userinfo padding
       for k, v in pairs(数据表 or {}) do
         if v.ids and v.ids.userinfo then
@@ -318,7 +320,7 @@ function 数据添加(t,回答id,viewId)
       view.setVisibility(0)
       view.animate().alpha(1).setDuration(200).start()
       if t.progress then t.progress.setVisibility(8) end
-      
+
       -- 注入 Padding-Top
       local mview = 数据表[viewId] or {ids=t}
       view.post(function() 更新WebViewPadding(mview) end)
@@ -333,20 +335,20 @@ function 数据添加(t,回答id,viewId)
         -- 恢复滑动位置
         view.postDelayed(function()
           view.evaluateJavascript("window.scrollRestorer.restoreScrollPosition()", {onReceiveValue=function(b)
-            view.evaluateJavascript("window.scrollRestorerPos", {onReceiveValue=function(pos_val)
-              local 保存滑动位置 = tonumber(pos_val) or 0
-              if t.userinfo and 保存滑动位置 > t.userinfo.height then
-                setDtlTranslation(getDtlMaxTranslation())
-                
-                local currentPos = pg.getCurrentItem()
-                local adapter = pg.getAdapter()
-                local currentItem = adapter and adapter.getItem(currentPos)
-                -- 仅当当前显示的是该页面时提示
-                if currentItem and currentItem.id == viewId then
-                   提示("已恢复到上次滑动位置")
-                end
-              end
-            end})
+              view.evaluateJavascript("window.scrollRestorerPos", {onReceiveValue=function(pos_val)
+                  local 保存滑动位置 = tonumber(pos_val) or 0
+                  if t.userinfo and 保存滑动位置 > t.userinfo.height then
+                    setDtlTranslation(getDtlMaxTranslation())
+
+                    local currentPos = pg.getCurrentItem()
+                    local adapter = pg.getAdapter()
+                    local currentItem = adapter and adapter.getItem(currentPos)
+                    -- 仅当当前显示的是该页面时提示
+                    if currentItem and currentItem.id == viewId then
+                      提示("已恢复到上次滑动位置")
+                    end
+                  end
+              end})
           end})
         end, 100)
       end, 200)
@@ -434,7 +436,7 @@ function 初始化页(mviews)
       提示(data.comment_count.."条评论")
       return true
     end
-  elseif mviews.load == "loading" then
+   elseif mviews.load == "loading" then
     ids.username.Text = "内容加载中..."
     ids.userheadline.Text = "请稍等片刻~"
   end
@@ -469,19 +471,19 @@ if type(pre_data) == "table" and pre_data.author then
     if mviews then
       mviews.load = "preview" -- 标记为预览状态，允许后续覆盖加载
       mviews.data = {
-         id = tostring(pre_data.id),
-         voteup_count = pre_data.voteup_count,
-         comment_count = pre_data.comment_count,
-         thanks_count = pre_data.thanks_count or 0,
-         favlists_count = 0,
-         点赞状态 = false,
-         感谢状态 = false,
-         author = {
-           name = pre_data.author.name,
-           headline = pre_data.author.headline,
-           avatar_url = pre_data.author.avatar_url,
-           id = tostring(pre_data.author.id)
-         }
+        id = tostring(pre_data.id),
+        voteup_count = pre_data.voteup_count,
+        comment_count = pre_data.comment_count,
+        thanks_count = pre_data.thanks_count or 0,
+        favlists_count = 0,
+        点赞状态 = false,
+        感谢状态 = false,
+        author = {
+          name = pre_data.author.name,
+          headline = pre_data.author.headline,
+          avatar_url = pre_data.author.avatar_url,
+          id = tostring(pre_data.author.id)
+        }
       }
       初始化页(mviews)
     end
@@ -492,11 +494,11 @@ function 加载页(mviews, isleftadd, pos, target_id, silent)
   if not target_id or (mviews.load and mviews.load ~= "preview") then return end
   mviews.load = "loading"
   mviews.target_id = target_id
-  
+
   -- 标记占用并立即加载网页
   回答容器.used_ids[tostring(target_id)] = true
   数据添加(mviews.ids, tostring(target_id), mviews.id)
-  
+
   -- 异步获取详细信息
   回答容器:getAnswer(target_id, function(cb)
     if cb == false then
@@ -521,7 +523,7 @@ function 加载页(mviews, isleftadd, pos, target_id, silent)
     }
     mviews.ids.data = cb
     mviews.load = true
-    
+
     -- 填充后续 ID 信息
     local mypageinfo = cb.pagination_info
     if mypageinfo then
@@ -532,16 +534,16 @@ function 加载页(mviews, isleftadd, pos, target_id, silent)
     end
 
     初始化页(mviews)
-    
+
     -- 如果当前页面就是正在显示的页面，立即记录历史
     if pos == pg.getCurrentItem() then
       初始化历史记录数据()
       保存历史记录(cb.id, cb.question.title, cb.excerpt, "回答")
     end
-    
+
     -- 数据就绪后，尝试处理视频逻辑 (修复竞态条件)
     if mviews.ids.processVideo then mviews.ids.processVideo() end
-    
+
     -- 尝试链式预加载物理下一页
     local next_pos = pos + (isleftadd and -1 or 1)
     local adapter = pg.getAdapter()
@@ -579,20 +581,20 @@ pg.registerOnPageChangeCallback(OnPageChangeCallback{
     local item = adapter.getItem(pos)
     local mviews = 数据表[item.id]
     if not mviews then return end
-    
+
     currentWebView = mviews.ids.content
     currentMViewIds = mviews.ids -- 切换页面时更新缓存的 ids
     setDtlTranslation(0, true)
-    
+
     -- 1. 刷新当前页
     if mviews.load == true then
       回答容器.getid = mviews.data.id
       初始化页(mviews)
       初始化历史记录数据()
       保存历史记录(mviews.data.id, mviews.ids.data.question.title, mviews.ids.data.excerpt, "回答")
-    elseif mviews.load == "loading" then
+     elseif mviews.load == "loading" then
       初始化页(mviews)
-    else
+     else
       -- 现场补救：可能是跳滑导致的未加载
       加载页(mviews, false, pos, 回答容器.getid)
     end
@@ -606,17 +608,25 @@ pg.registerOnPageChangeCallback(OnPageChangeCallback{
     -- 同步 AppBar 状态
     local scroll_y = currentWebView.getScrollY()
     local translation = -scroll_y
-    appbar.setTranslationY(translation)
-    
-    if cached_header_height == 0 then cached_header_height = all_root_expand.getHeight() or dp2px(100) end
+    --appbar.setTranslationY(translation)
+    if cached_header_height == 0 then
+      cached_header_height = dp2px(100) end
+    --0/0一定要==0😭
     local progress = math.min(1, math.abs(translation) / cached_header_height)
-    all_root.setAlpha(progress)
-    all_root_expand.setAlpha(1 - progress)
+    --all_root.setAlpha(progress)
+    --all_root_expand.setAlpha(1 - progress)
+    root_anim_set=AnimatorSet()
+    root_anim_set.setInterpolator(AnticipateOvershootInterpolator(0.1))
+    root_anim_set.setDuration(200)
+    root_anim_set.play(ObjectAnimator.ofFloat(appbar, "TranslationY", {appbar.translationY, translation}))
+    .with(ObjectAnimator.ofFloat(all_root, "Alpha", {all_root.alpha, progress}))
+    .with(ObjectAnimator.ofFloat(all_root_expand, "Alpha", {all_root_expand.alpha, 1-progress}))
+    root_anim_set.start()
   end,
   onPageScrolled=function(pos,positionOffset,positionOffsetPixels)
     if positionOffsetPixels==0 then
       if 回答容器 then 回答容器:updateLR() end
-    elseif positionOffset > 0 and 回答容器 and 回答容器.isright then
+     elseif positionOffset > 0 and 回答容器 and 回答容器.isright then
       local item = pg.adapter.getItem(pos)
       local mviews = item and 数据表[item.id]
       if mviews and mviews.load == true then
@@ -638,16 +648,7 @@ taskUI(function()
     if not mview.load then
       加载页(mview, false, pg.getCurrentItem(), 回答容器.getid)
     end
-    -- 强制同步初始状态
-    if currentWebView then
-      local scroll_y = currentWebView.getScrollY()
-      local translation = -scroll_y
-      appbar.setTranslationY(translation)
-      if scroll_y == 0 then
-        all_root.setAlpha(0)
-        all_root_expand.setAlpha(1)
-      end
-    end
+
     -- 补救首页记录
     if mview.load == true then
       初始化历史记录数据()
@@ -670,14 +671,14 @@ voteup.onClick=function()
   if not 回答id then return 提示("加载中") end
   local is_up = not data.点赞状态
   local type_str = is_up and "up" or "neutral"
-  
+
   zHttp.post("https://api.zhihu.com/answers/"..回答id.."/voters", '{"type":"'..type_str..'"}', posthead, function(code,content)
     if code==200 then
       提示(is_up and "点赞成功" or "取消点赞成功")
       data.点赞状态 = is_up
       data.voteup_count = data.voteup_count + (is_up and 1 or -1)
       更新底栏(data)
-    elseif code==401 then
+     elseif code==401 then
       提示("请登录后使用本功能")
     end
   end)
@@ -687,31 +688,31 @@ thank.onClick=function()
   local _, data, _, _, 回答id = get_current_info()
   if not 回答id then return 提示("加载中") end
   local is_thank = not data.感谢状态
-  
+
   local url = "https://www.zhihu.com/api/v4/zreaction"
   local method = is_thank and zHttp.post or zHttp.delete
-  local params = is_thank 
-      and '{"content_type":"answers","content_id":"'..回答id..'","action_type":"emojis","action_value":"red_heart"}'
-      or "?content_type=answers&content_id="..回答id.."&action_type=emojis&action_value="
-  
+  local params = is_thank
+  and '{"content_type":"answers","content_id":"'..回答id..'","action_type":"emojis","action_value":"red_heart"}'
+  or "?content_type=answers&content_id="..回答id.."&action_type=emojis&action_value="
+
   method(url.. (is_thank and "" or params), is_thank and params or posthead, is_thank and posthead or function(code,content)
-      if code==200 then
-        提示("取消感谢成功")
-        data.感谢状态 = false
-        data.thanks_count = data.thanks_count - 1
-        更新底栏(data)
-      elseif code==401 then
-        提示("请登录后使用本功能")
-      end
-  end, is_thank and function(code,content) 
-      if code==200 then
-        提示("表达感谢成功")
-        data.感谢状态 = true
-        data.thanks_count = data.thanks_count + 1
-        更新底栏(data)
-      elseif code==401 then
-        提示("请登录后使用本功能")
-      end
+    if code==200 then
+      提示("取消感谢成功")
+      data.感谢状态 = false
+      data.thanks_count = data.thanks_count - 1
+      更新底栏(data)
+     elseif code==401 then
+      提示("请登录后使用本功能")
+    end
+    end, is_thank and function(code,content)
+    if code==200 then
+      提示("表达感谢成功")
+      data.感谢状态 = true
+      data.thanks_count = data.thanks_count + 1
+      更新底栏(data)
+     elseif code==401 then
+      提示("请登录后使用本功能")
+    end
   end or nil)
 end
 
@@ -743,7 +744,7 @@ function onKeyUp(code,event)
   if code==KeyEvent.KEYCODE_VOLUME_UP then
     pg.setCurrentItem(current-1)
     return true
-  elseif code== KeyEvent.KEYCODE_VOLUME_DOWN then
+   elseif code== KeyEvent.KEYCODE_VOLUME_DOWN then
     pg.setCurrentItem(current+1)
     return true
   end
@@ -781,6 +782,25 @@ taskUI(function()
     local _, _, _, name = get_current_info()
     return string.format(format, _title.Text, name, "https://www.zhihu.com/question/"..问题id.."/answer/"..answer_id)
   end
+
+  local function dndQuestion(view)
+    local url=获取当前回答URL()
+    if url==nil then
+      提示("加载中")
+      return
+    end
+    local shadowBuilder=View.DragShadowBuilder(expand_title)
+    local clipData=ClipData.newPlainText("知乎回答",获取分享文本(url))
+    --startDragAndDrop是api24加入的，所以要进行版本号的判断。虽然startDrag也能做到相同的效果，但是startDrag已经废弃
+    if Build.VERSION.SDK_INT >= 24 then
+      view.startDragAndDrop(clipData,shadowBuilder,nil,View.DRAG_FLAG_OPAQUE|View.DRAG_FLAG_GLOBAL|View.DRAG_FLAG_GLOBAL_URI_READ|View.DRAG_FLAG_GLOBAL_URI_WRITE)
+     else
+      view.startDrag(clipData,shadowBuilder,nil,View.DRAG_FLAG_OPAQUE|View.DRAG_FLAG_GLOBAL|View.DRAG_FLAG_GLOBAL_URI_READ|View.DRAG_FLAG_GLOBAL_URI_WRITE)
+    end
+  end
+  all_root.onLongClick = dndQuestion
+  all_root_expand.onLongClick = dndQuestion
+  all_answer_expand.onLongClick = dndQuestion
 
   a=MUKPopu({
     tittle="回答",
@@ -886,8 +906,8 @@ taskUI(function()
           if not mview then return end
           local headline = author and author.headline or "Ta还没有签名哦~"
           local 保存路径 = 内置存储文件("Download/".._title.Text.."/"..name)
-          local detail = string.format('question_id="%s"\nanswer_id="%s"\nthanks_count="%s"\nvote_count="%s"\nfavlists_count="%s"\ncomment_count="%s"\nauthor="%s"\nheadline="%s"\n', 
-            问题id, 回答id, thanks_count.Text, vote_count.Text, favlists_count.Text, comment_count.Text, name, headline)
+          local detail = string.format('question_id="%s"\nanswer_id="%s"\nthanks_count="%s"\nvote_count="%s"\nfavlists_count="%s"\ncomment_count="%s"\nauthor="%s"\nheadline="%s"\n',
+          问题id, 回答id, thanks_count.Text, vote_count.Text, favlists_count.Text, comment_count.Text, name, headline)
           写入文件(保存路径.."/detail.txt", detail)
           newActivity("saveweb", {mview.ids.content.getUrl(), 保存路径, detail})
         end,
@@ -930,15 +950,6 @@ taskUI(function()
     }
   })
 end)
-
-if activity.getSharedData("回答提示0.04")==nil then
-  AlertDialog.Builder(this)
-  .setTitle("小提示")
-  .setCancelable(false)
-  .setMessage("你可双击标题回到顶部")
-  .setPositiveButton("我知道了", {onClick=function() activity.setSharedData("回答提示0.04","true") end})
-  .show()
-end
 
 if this.getSharedData("显示虚拟滑动按键")=="true" then
   bottom_parent.Visibility=0
